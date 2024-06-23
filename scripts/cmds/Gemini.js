@@ -1,58 +1,214 @@
-const axios = require("axios");
+const axios = require('axios');
+const fs = require('fs-extra');
+const path = require('path');
+const ytdl = require("ytdl-core");
+const yts = require("yt-search");
 
-module.exports.config = {
-  name: "gemini",
-  version: "1.0.0",
-  role: 0, 
-  author: "dipto", 
-  description: "Gemini ai with multiple conversation",
-  usePrefix: true,
-  guide: "[message]",
-  category: "Ai",
-  coolDowns: 5,
-};
-module.exports.onReply = async function ({ api, event, Reply}) {
- //api.unsendMessage(Reply.messageID);
-  const { author } = Reply;
-  if(author != event.senderID)
-  return;
-  const uid = event.senderID
-  if (event.type == "message_reply") {
-  const reply = event.body.toLowerCase();;
-  if (isNaN(reply)) {
-    const response = await axios.get(`https://nobs-api.onrender.com/dipto/gemini2?text=${encodeURIComponent(reply)}&senderID=${uid}`)
-       const ok = response.data.response
-    await api.sendMessage(ok ,event.threadID,(error, info) => {
-  global.GoatBot.onReply.set(info.messageID,{
-        commandName: this.config.name,
-        type: 'reply',
-    messageID: info.messageID,
-    author: event.senderID,
-    link: ok
-  })},event.messageID)
-  }
+async function lado(api, event, args, message) {
+  try {
+    const songName = args.join(" ");
+    const searchResults = await yts(songName);
+
+    if (!searchResults.videos.length) {
+      message.reply("No song found for the given query.");
+      return;
+    }
+
+    const video = searchResults.videos[0];
+    const videoUrl = video.url;
+    const stream = ytdl(videoUrl, { filter: "audioonly" });
+    const fileName = `music.mp3`; 
+    const filePath = path.join(__dirname, "tmp", fileName);
+
+    stream.pipe(fs.createWriteStream(filePath));
+
+    stream.on('response', () => {
+      console.info('[DOWNLOADER]', 'Starting download now!');
+    });
+
+    stream.on('info', (info) => {
+      console.info('[DOWNLOADER]', `Downloading ${info.videoDetails.title} by ${info.videoDetails.author.name}`);
+    });
+
+    stream.on('end', () => {
+      const audioStream = fs.createReadStream(filePath);
+      message.reply({ attachment: audioStream });
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    message.reply("Sorry, an error occurred while processing your request.");
   }
 }
-module.exports.onStart = async function ({ api, args, event }) {
- const uid = event.senderID
+
+async function kshitiz(api, event, args, message) {
   try {
-    const dipto = args.join(" ").toLowerCase();
-    if (!args[0]) {
-      api.sendMessage(
-        "𝙿𝙻𝙴𝙰𝚂𝙴 𝙿𝚁𝙾𝚅𝙸𝙳𝙳 𝙰 𝚀𝚂 𝚃𝙾 𝙰𝙽𝚂 \n\n𝙴𝚇𝙰𝙼𝙿𝙻𝙴:\n𝙶𝙴𝙼𝙸𝙽𝙸 𝙷𝙴𝚈",
-  event.threadID,  event.messageID ); return;}
-    if (dipto) {
-      const response = await axios.get(`https://noobs-api2.onrender.com/dipto/gemini2?text=${encodeURIComponent(dipto)}&senderID=${uid}`);
-         const mg = response.data.response;
-      await api.sendMessage({body: mg ,},event.threadID,(error, info) => {
-  global.GoatBot.onReply.set(info.messageID,{
-        commandName: this.config.name,
-    type: 'reply',
-    messageID: info.messageID,
-    author: event.senderID,
-    link: mg
-  })},event.messageID);
+    const query = args.join(" ");
+    const searchResults = await yts(query);
+
+    if (!searchResults.videos.length) {
+      message.reply("No videos found for the given query.");
+      return;
     }
-  } catch (error) {console.error(`Failed to get an answer: ${error.message}`);
-api.sendMessage(`${error.message}.\nAn error`,event.threadID,event.messageID);}
+
+    const video = searchResults.videos[0];
+    const videoUrl = video.url;
+    const stream = ytdl(videoUrl, { filter: "audioandvideo" }); 
+    const fileName = `music.mp4`;
+    const filePath = path.join(__dirname, "tmp", fileName);
+
+    stream.pipe(fs.createWriteStream(filePath));
+
+    stream.on('response', () => {
+      console.info('[DOWNLOADER]', 'Starting download now!');
+    });
+
+    stream.on('info', (info) => {
+      console.info('[DOWNLOADER]', `Downloading ${info.videoDetails.title} by ${info.videoDetails.author.name}`);
+    });
+
+    stream.on('end', () => {
+      const videoStream = fs.createReadStream(filePath);
+      message.reply({ attachment: videoStream });
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
+    });
+  } catch (error) {
+    console.error(error);
+    message.reply("Sorry, an error occurred while processing your request.");
+  }
+}
+
+async function b(c, d, e, f) {
+  try {
+    const g = await axios.get(`https://gemini-ai-pearl-two.vercel.app/kshitiz?prompt=${encodeURIComponent(c)}&uid=${d}&apikey=kshitiz`);
+    return g.data.answer;
+  } catch (h) {
+    throw h;
+  }
+}
+
+async function i(c) {
+  try {
+    const j = await axios.get(`https://sdxl-kshitiz.onrender.com/gen?prompt=${encodeURIComponent(c)}&style=3`);
+    return j.data.url;
+  } catch (k) {
+    throw k;
+  }
+}
+
+async function describeImage(prompt, photoUrl) {
+  try {
+    const url = `https://sandipbaruwal.onrender.com/gemini2?prompt=${encodeURIComponent(prompt)}&url=${encodeURIComponent(photoUrl)}`;
+    const response = await axios.get(url);
+    return response.data.answer;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function l({ api, message, event, args }) {
+  try {
+    const m = event.senderID;
+    let n = "";
+    let draw = false;
+    let sendTikTok = false;
+    let sing = false;
+
+    if (args[0].toLowerCase() === "draw") {
+      draw = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (args[0].toLowerCase() === "send") {
+      sendTikTok = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (args[0].toLowerCase() === "sing") {
+      sing = true;
+      n = args.slice(1).join(" ").trim();
+    } else if (event.messageReply && event.messageReply.attachments && event.messageReply.attachments.length > 0) {
+      const photoUrl = event.messageReply.attachments[0].url;
+      n = args.join(" ").trim();
+      const description = await describeImage(n, photoUrl);
+      message.reply(`Description: ${description}`);
+      return;
+    } else {
+      n = args.join(" ").trim();
+    }
+
+    if (!n) {
+      return message.reply("Please provide a prompt.");
+    }
+
+    if (draw) {
+      await drawImage(message, n);
+    } else if (sendTikTok) {
+      await kshitiz(api, event, args.slice(1), message); 
+    } else if (sing) {
+      await lado(api, event, args.slice(1), message); 
+    } else {
+      const q = await b(n, m);
+      message.reply(q, (r, s) => {
+        global.GoatBot.onReply.set(s.messageID, {
+          commandName: a.name,
+          uid: m 
+        });
+      });
+    }
+  } catch (t) {
+    console.error("Error:", t.message);
+    message.reply("An error occurred while processing the request.");
+  }
+}
+
+async function drawImage(message, prompt) {
+  try {
+    const u = await i(prompt);
+
+    const v = path.join(__dirname, 'cache', `image_${Date.now()}.png`);
+    const writer = fs.createWriteStream(v);
+
+    const response = await axios({
+      url: u,
+      method: 'GET',
+      responseType: 'stream'
+    });
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    }).then(() => {
+      message.reply({
+        body: "Generated image:",
+        attachment: fs.createReadStream(v)
+      });
+    });
+  } catch (w) {
+    console.error("Error:", w.message);
+    message.reply("An error occurred while processing the request.");
+  }
+}
+
+const a = {
+  name: "gemini3",
+  aliases: ["bard"],
+  version: "4.0",
+  author: "vex_kshitiz",
+  countDown: 5,
+  role: 0,
+  longDescription: "Chat with gemini",
+  category: "ai",
+  guide: {
+    en: "{p}gemini {prompt}"
+  }
+};
+
+module.exports = {
+  config: a,
+  handleCommand: l,
+  onStart: function ({ api, message, event, args }) {
+    return l({ api, message, event, args });
+  },
+  onReply: function ({ api, message, event, args }) {
+    return l({ api, message, event, args });
+  }
 };
